@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://dsyo3knu6epiv"]
+
+[ext_resource type="Script" uid="uid://blqtumj4508eg" path="res://main.gd" id="1_0xm2m"]
+[ext_resource type="Texture2D" uid="uid://vcc66271grcd" path="res://tiles.png" id="1_ig7tw"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_0xm2m"]
+texture = ExtResource("1_ig7tw")
+texture_region_size = Vector2i(32, 32)
+1:0/0 = 0
+2:0/0 = 0
+0:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_7dm0k"]
+tile_size = Vector2i(32, 32)
+sources/0 = SubResource("TileSetAtlasSource_0xm2m")
+
+[node name="Main" type="Node2D" unique_id=24605467]
+script = ExtResource("1_0xm2m")
+
+[node name="TileMap" type="TileMap" parent="." unique_id=1742311686]
+tile_set = SubResource("TileSet_7dm0k")
+format = 2
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1932754175]
