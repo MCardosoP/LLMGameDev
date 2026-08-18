@@ -2,16 +2,12 @@ from __future__ import annotations
 
 import json
 import sys
+import re
 from pathlib import Path
 from typing import Literal
 
 import requests
 from pydantic import BaseModel, Field, ValidationError, model_validator
-
-
-# ==========================
-# MODELOS
-# ==========================
 
 RoomType = Literal[
     "start",
@@ -22,16 +18,13 @@ RoomType = Literal[
     "locked",
 ]
 
-
 class Room(BaseModel):
     id: int = Field(ge=1)
     type: RoomType
 
-
 class Connection(BaseModel):
     start: int
     end: int
-
 
 class Dungeon(BaseModel):
     rooms: list[Room]
@@ -77,11 +70,6 @@ class Dungeon(BaseModel):
                 )
 
         return self
-
-
-# ==========================
-# PROMPT
-# ==========================
 
 SYSTEM_PROMPT = """
 Você é um projetista de níveis para jogos do tipo dungeon.
@@ -174,17 +162,11 @@ A primeira coisa da resposta deve ser o caractere {
 A última coisa da resposta deve ser o caractere }
 """
 
-
-# ==========================
-# OLLAMA
-# ==========================
-
 OLLAMA_URL = "http://localhost:11434/api/chat"
 
 MODEL_NAME = "llama3.2"
 
 MAX_ATTEMPTS = 3
-
 
 CORRECTION_PROMPT = """
 Sua resposta anterior não passou na validação.
@@ -206,11 +188,6 @@ Não utilize Markdown.
 Retorne somente JSON válido.
 """
 
-
-# ==========================
-# VALIDAÇÃO DOS ERROS
-# ==========================
-
 def format_validation_errors(error: ValidationError) -> str:
 
     errors = []
@@ -230,18 +207,8 @@ def format_validation_errors(error: ValidationError) -> str:
 
     return "\n".join(errors)
 
-
-# ==========================
-# VALIDAÇÃO DE CONECTIVIDADE
-# ==========================
-
 def validate_connectivity(dungeon: Dungeon) -> list[str]:
-
     errors = []
-
-    # ---------------------------------
-    # Identificar salas importantes
-    # ---------------------------------
 
     start_room = next(
         room
@@ -254,10 +221,6 @@ def validate_connectivity(dungeon: Dungeon) -> list[str]:
         for room in dungeon.rooms
         if room.type == "boss"
     )
-
-    # ---------------------------------
-    # Criar grafo
-    # ---------------------------------
 
     graph: dict[int, list[int]] = {
         room.id: []
@@ -274,10 +237,6 @@ def validate_connectivity(dungeon: Dungeon) -> list[str]:
             connection.start
         )
 
-    # ---------------------------------
-    # Verificar salas isoladas
-    # ---------------------------------
-
     for room in dungeon.rooms:
 
         if len(graph[room.id]) == 0:
@@ -287,10 +246,6 @@ def validate_connectivity(dungeon: Dungeon) -> list[str]:
                 f"(tipo '{room.type}') está isolada "
                 f"e não possui nenhuma conexão."
             )
-
-    # ---------------------------------
-    # Busca em largura (BFS)
-    # ---------------------------------
 
     visited = set()
 
@@ -310,10 +265,6 @@ def validate_connectivity(dungeon: Dungeon) -> list[str]:
             if neighbor not in visited:
                 queue.append(neighbor)
 
-    # ---------------------------------
-    # Verificar se o boss é alcançável
-    # ---------------------------------
-
     if boss_room.id not in visited:
 
         errors.append(
@@ -326,17 +277,9 @@ def validate_connectivity(dungeon: Dungeon) -> list[str]:
 
 def validate_logic(dungeon: Dungeon) -> list[str]:
     errors = []
-
-    # ---------------------------------
-    # Verificar conexões duplicadas
-    # ---------------------------------
-
     connections_seen = set()
 
     for connection in dungeon.connections:
-
-        # Como as conexões são tratadas como não direcionadas,
-        # (1, 2) e (2, 1) representam a mesma conexão.
         connection_key = tuple(
             sorted(
                 [connection.start, connection.end]
@@ -356,10 +299,6 @@ def validate_logic(dungeon: Dungeon) -> list[str]:
             connections_seen.add(
                 connection_key
             )
-
-    # ---------------------------------
-    # Verificar coerência entre key e locked
-    # ---------------------------------
 
     has_key = any(
         room.type == "key"
@@ -381,12 +320,188 @@ def validate_logic(dungeon: Dungeon) -> list[str]:
 
     return errors
 
-# ==========================
-# OLLAMA
-# ==========================
+def validate_requirements(
+    dungeon: Dungeon,
+    description: str
+) -> list[str]:
+    
+    errors = []
+    description_lower = description.lower()
+    
+    room_type_names = {
+        "start": ["start", "inicial", "início", "inicio"],
+        "enemy": ["enemy", "inimigo", "inimigos"],
+        "treasure": ["treasure", "tesouro"],
+        "boss": ["boss", "chefe"],
+        "key": ["key", "chave"],
+        "locked": ["locked", "trancada", "trancado"],
+    }
+    
+    number_words = {
+        "um": 1,
+        "uma": 1,
+        "dois": 2,
+        "duas": 2,
+        "três": 3,
+        "tres": 3,
+        "quatro": 4,
+        "cinco": 5,
+        "seis": 6,
+        "sete": 7,
+        "oito": 8,
+        "nove": 9,
+        "dez": 10,
+        "onze": 11,
+        "doze": 12,
+        "treze": 13,
+        "quatorze": 14,
+        "quinze": 15,
+    }
+    
+    requested_counts: dict[str, int] = {}
+    
+    for room_type, names in room_type_names.items():
+        for name in names:
+            pattern_word = (
+                r"\b("
+                + "|".join(
+                    number_words.keys()
+                )
+                + r")\s+"
+                r"(?:salas?\s+de\s+)?"
+                + re.escape(name)
+                + r"\b"
+            )
+
+            match = re.search(
+                pattern_word,
+                description_lower
+            )
+
+            if match:
+
+                number = number_words[
+                    match.group(1)
+                ]
+
+                requested_counts[
+                    room_type
+                ] = number
+
+                break
+
+            pattern_digit = (
+                r"\b(\d+)\s+"
+                r"(?:salas?\s+de\s+)?"
+                + re.escape(name)
+                + r"\b"
+            )
+
+            match = re.search(
+                pattern_digit,
+                description_lower
+            )
+
+            if match:
+
+                requested_counts[
+                    room_type
+                ] = int(
+                    match.group(1)
+                )
+
+                break
+
+    special_patterns = {
+        "start": [
+            r"\buma\s+sala\s+(?:de\s+)?inicial\b",
+            r"\buma\s+sala\s+(?:de\s+)?start\b",
+        ],
+
+        "boss": [
+            r"\buma\s+sala\s+(?:de\s+)?chefe\b",
+            r"\buma\s+sala\s+(?:de\s+)?boss\b",
+        ],
+
+        "treasure": [
+            r"\buma\s+sala\s+(?:de\s+)?tesouro\b",
+        ],
+
+        "key": [
+            r"\buma\s+sala\s+(?:de\s+)?chave\b",
+        ],
+
+        "locked": [
+            r"\buma\s+sala\s+(?:de\s+)?"
+            r"(?:trancada|trancado)\b",
+        ],
+    }
+
+    for room_type, patterns in special_patterns.items():
+        if room_type in requested_counts:
+            continue
+
+        for pattern in patterns:
+            if re.search(
+                pattern,
+                description_lower
+            ):
+
+                requested_counts[
+                    room_type
+                ] = 1
+
+                break
+
+    actual_counts = {}
+
+    for room_type in room_type_names:
+        actual_counts[room_type] = sum(
+            room.type == room_type
+            for room in dungeon.rooms
+        )
+
+    for room_type, expected in requested_counts.items():
+        actual = actual_counts[
+            room_type
+        ]
+
+        if actual != expected:
+            errors.append(
+                f"A descrição solicita "
+                f"{expected} sala(s) do tipo "
+                f"'{room_type}', mas foram "
+                f"geradas {actual}."
+            )
+
+    if requested_counts:
+        expected_total = sum(
+            requested_counts.values()
+        )
+
+        actual_total = len(
+            dungeon.rooms
+        )
+
+        if (
+            actual_total != expected_total
+            and all(
+                room.type in requested_counts
+                for room in dungeon.rooms
+            )
+        ):
+
+            errors.append(
+                f"A descrição solicita "
+                f"{expected_total} sala(s) "
+                f"no total, mas foram "
+                f"geradas {actual_total}."
+            )
+
+    return errors
 
 def call_llm(messages: list[dict]) -> str:
-
+    print("Enviando requisição para Ollama...")
     response = requests.post(
         OLLAMA_URL,
         json={
@@ -397,13 +512,15 @@ def call_llm(messages: list[dict]) -> str:
                 "temperature": 0.1
             }
         },
-        timeout=120,
+        timeout=240,
     )
-
+    
+    print("Ollama respondeu.")
     response.raise_for_status()
-
+    print("Status HTTP:", response.status_code)
     text = response.json()["message"]["content"].strip()
-
+    print("Resposta recebida.")
+    
     if text.startswith("```"):
 
         text = text.replace(
@@ -420,21 +537,11 @@ def call_llm(messages: list[dict]) -> str:
 
     return text
 
-
-# ==========================
-# VALIDAÇÃO DO JSON
-# ==========================
-
 def validate_response(text: str) -> Dungeon:
 
     data = json.loads(text)
 
     return Dungeon.model_validate(data)
-
-
-# ==========================
-# GERAÇÃO DA DUNGEON
-# ==========================
 
 def generate_dungeon(description: str) -> Dungeon:
 
@@ -471,16 +578,18 @@ def generate_dungeon(description: str) -> Dungeon:
                 response_text
             )
 
-            # ---------------------------------
-            # Validação de conectividade
-            # ---------------------------------
-
             connectivity_errors = validate_connectivity(dungeon)
             logic_errors = validate_logic(dungeon)
+
+            requirement_errors = validate_requirements(
+                dungeon,
+                description
+            )
 
             all_logic_errors = (
                 connectivity_errors
                 + logic_errors
+                + requirement_errors
             )
             
             if all_logic_errors:
@@ -517,10 +626,6 @@ def generate_dungeon(description: str) -> Dungeon:
 
             return dungeon
 
-        # ---------------------------------
-        # JSON inválido
-        # ---------------------------------
-
         except json.JSONDecodeError as error:
 
             last_error = error
@@ -554,10 +659,6 @@ def generate_dungeon(description: str) -> Dungeon:
                     )
                 }
             )
-
-        # ---------------------------------
-        # Erro de validação Pydantic
-        # ---------------------------------
 
         except ValidationError as error:
 
@@ -601,11 +702,6 @@ def generate_dungeon(description: str) -> Dungeon:
         f"{last_error}"
     )
 
-
-# ==========================
-# EXPORTAÇÃO
-# ==========================
-
 def save_for_godot(
     dungeon: Dungeon,
     output_path: Path
@@ -636,11 +732,6 @@ def save_for_godot(
         ),
         encoding="utf-8",
     )
-
-
-# ==========================
-# MAIN
-# ==========================
 
 def main() -> int:
 
@@ -705,7 +796,6 @@ def main() -> int:
     )
 
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
