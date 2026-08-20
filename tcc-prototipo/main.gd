@@ -66,6 +66,12 @@ func draw_room(pos, type):
 		atlas_coords = Vector2i(1,0)
 	elif type == "boss":
 		atlas_coords = Vector2i(2,0)
+	elif type == "treasure":
+		atlas_coords = Vector2i(3,0)
+	elif type == "key":
+		atlas_coords = Vector2i(4,0)
+	elif type == "locked":
+		atlas_coords = Vector2i(5,0)
 	elif type == "enemy":
 		atlas_coords = Vector2i(0,0)
 
