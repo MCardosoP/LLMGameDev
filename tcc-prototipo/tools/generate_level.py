@@ -74,19 +74,12 @@ class Dungeon(BaseModel):
 SYSTEM_PROMPT = """
 Você é um projetista de níveis para jogos do tipo dungeon.
 
-Sua tarefa é gerar a estrutura lógica de uma dungeon a partir da descrição fornecida pelo usuário.
+Sua tarefa é gerar a estrutura lógica de uma dungeon a partir da descrição do usuário.
 
-A resposta deve ser EXCLUSIVAMENTE um objeto JSON válido.
+Retorne EXCLUSIVAMENTE um objeto JSON válido.
+Não escreva explicações, Markdown, blocos de código ou texto antes/depois do JSON.
 
-NÃO:
-- escreva explicações;
-- escreva texto antes ou depois do JSON;
-- utilize Markdown;
-- utilize blocos de código;
-- utilize ```json;
-- adicione campos que não foram solicitados.
-
-O formato obrigatório é:
+Formato obrigatório:
 
 {
     "rooms": [
@@ -117,49 +110,37 @@ O formato obrigatório é:
 
 REGRAS DAS SALAS:
 
-- "rooms" deve ser uma lista de objetos.
-- Cada sala deve possuir exatamente os campos "id" e "type".
-- "id" deve ser um número inteiro positivo.
-- Cada ID deve ser único.
-- "type" deve ser exatamente um dos seguintes valores:
-  - "start"
-  - "enemy"
-  - "treasure"
-  - "boss"
-  - "key"
-  - "locked"
-- Deve existir exatamente uma sala do tipo "start".
-- Deve existir exatamente uma sala do tipo "boss".
+- "rooms" deve ser uma lista de objetos contendo apenas "id" e "type".
+- "id" deve ser um inteiro positivo e único.
+- "type" deve ser exatamente "start", "enemy", "treasure", "boss", "key" ou "locked".
+- Deve existir exatamente uma sala "start" e exatamente uma sala "boss".
+- Respeite exatamente os tipos e as quantidades de salas solicitados pelo usuário.
+- Não adicione salas de tipos não solicitados.
+- Siga a progressão e a estrutura descritas pelo usuário.
+- Não adicione salas ou conexões que não contribuam para a estrutura solicitada.
+- A sala "boss" deve ser o destino final da progressão, salvo quando o usuário solicitar explicitamente outra estrutura.
+- Quando forem solicitados múltiplos caminhos, mantenha-os distintos até o ponto de encontro especificado pelo usuário.
 
 REGRAS DAS CONEXÕES:
 
-- "connections" deve ser uma lista de objetos.
-- Cada conexão deve possuir exatamente os campos "start" e "end".
-- "start" deve conter o ID de uma sala existente.
-- "end" deve conter o ID de uma sala existente.
-- "start" e "end" devem ser números inteiros.
+- "connections" deve ser uma lista de objetos contendo apenas "start" e "end".
+- "start" e "end" devem ser inteiros correspondentes a IDs de salas existentes.
 - Uma sala não pode se conectar a ela mesma.
-- Não utilize listas como [1, 2] para representar conexões.
-- Uma conexão deve SEMPRE seguir este formato:
-
-{
-    "start": 1,
-    "end": 2
-}
+- Nunca represente uma conexão como uma lista, por exemplo [1, 2].
+- Cada conexão deve seguir o formato:
+  {
+      "start": 1,
+      "end": 2
+  }
 
 REGRAS DA ESTRUTURA:
 
 - Nenhuma sala deve ficar isolada.
-- Deve existir um caminho entre a sala "start" e a sala "boss".
-- O nível deve possuir alguma progressão lógica.
-- Todas as conexões devem utilizar IDs de salas existentes.
+- Deve existir um caminho entre "start" e "boss".
+- Todas as conexões devem utilizar IDs existentes.
+- O nível deve possuir uma progressão lógica.
 
-IMPORTANTE:
-
-Retorne somente o JSON.
-
-A primeira coisa da resposta deve ser o caractere {
-A última coisa da resposta deve ser o caractere }
+A resposta deve começar com { e terminar com }.
 """
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
@@ -324,19 +305,32 @@ def validate_requirements(
     dungeon: Dungeon,
     description: str
 ) -> list[str]:
-    
+
     errors = []
+
     description_lower = description.lower()
-    
+
+    # ---------------------------------
+    # Mapeamento dos tipos de sala
+    # ---------------------------------
+
     room_type_names = {
         "start": ["start", "inicial", "início", "inicio"],
         "enemy": ["enemy", "inimigo", "inimigos"],
         "treasure": ["treasure", "tesouro"],
         "boss": ["boss", "chefe"],
         "key": ["key", "chave"],
-        "locked": ["locked", "trancada", "trancado"],
+        "locked": [
+            "locked",
+            "trancada",
+            "trancado",
+        ],
     }
-    
+
+    # ---------------------------------
+    # Números escritos por extenso
+    # ---------------------------------
+
     number_words = {
         "um": 1,
         "uma": 1,
@@ -357,18 +351,62 @@ def validate_requirements(
         "quatorze": 14,
         "quinze": 15,
     }
-    
-    requested_counts: dict[str, int] = {}
-    
+
+    # ---------------------------------
+    # Identificar tipos mencionados
+    # explicitamente na descrição
+    # ---------------------------------
+
+    mentioned_types = set()
+
     for room_type, names in room_type_names.items():
+
         for name in names:
+
+            if re.search(
+                r"\b" + re.escape(name) + r"\b",
+                description_lower
+            ):
+                mentioned_types.add(room_type)
+                break
+
+    # ---------------------------------
+    # Identificar quantidades explícitas
+    #
+    # IMPORTANTE:
+    # A quantidade precisa estar associada
+    # explicitamente a "sala(s)".
+    #
+    # Portanto:
+    #
+    # "duas salas de inimigos"
+    # -> enemy = 2
+    #
+    # "dois caminhos contendo salas..."
+    # -> nenhuma quantidade de salas
+    # ---------------------------------
+
+    requested_counts: dict[str, int] = {}
+
+    number_pattern = "|".join(
+        number_words.keys()
+    )
+
+    for room_type, names in room_type_names.items():
+
+        for name in names:
+
+            # Exemplo:
+            # "cinco salas de inimigos"
+            #
+            # Também aceita:
+            # "cinco salas inimigas"
             pattern_word = (
                 r"\b("
-                + "|".join(
-                    number_words.keys()
-                )
+                + number_pattern
                 + r")\s+"
-                r"(?:salas?\s+de\s+)?"
+                r"salas?\s+"
+                r"(?:de\s+)?"
                 + re.escape(name)
                 + r"\b"
             )
@@ -380,19 +418,21 @@ def validate_requirements(
 
             if match:
 
-                number = number_words[
+                requested_counts[
+                    room_type
+                ] = number_words[
                     match.group(1)
                 ]
 
-                requested_counts[
-                    room_type
-                ] = number
-
                 break
+
+            # Exemplo:
+            # "5 salas de inimigos"
 
             pattern_digit = (
                 r"\b(\d+)\s+"
-                r"(?:salas?\s+de\s+)?"
+                r"salas?\s+"
+                r"(?:de\s+)?"
                 + re.escape(name)
                 + r"\b"
             )
@@ -411,6 +451,11 @@ def validate_requirements(
                 )
 
                 break
+
+    # ---------------------------------
+    # Casos de "uma sala inicial",
+    # "uma sala de chefe", etc.
+    # ---------------------------------
 
     special_patterns = {
         "start": [
@@ -438,10 +483,12 @@ def validate_requirements(
     }
 
     for room_type, patterns in special_patterns.items():
+
         if room_type in requested_counts:
             continue
 
         for pattern in patterns:
+
             if re.search(
                 pattern,
                 description_lower
@@ -451,22 +498,37 @@ def validate_requirements(
                     room_type
                 ] = 1
 
+                mentioned_types.add(
+                    room_type
+                )
+
                 break
+
+    # ---------------------------------
+    # Contagem real das salas
+    # ---------------------------------
 
     actual_counts = {}
 
     for room_type in room_type_names:
+
         actual_counts[room_type] = sum(
             room.type == room_type
             for room in dungeon.rooms
         )
 
+    # ---------------------------------
+    # Verificar quantidades solicitadas
+    # ---------------------------------
+
     for room_type, expected in requested_counts.items():
+
         actual = actual_counts[
             room_type
         ]
 
         if actual != expected:
+
             errors.append(
                 f"A descrição solicita "
                 f"{expected} sala(s) do tipo "
@@ -474,29 +536,275 @@ def validate_requirements(
                 f"geradas {actual}."
             )
 
+    # ---------------------------------
+    # Verificar tipos não solicitados
+    #
+    # Só aplicamos quando a descrição
+    # especifica explicitamente tipos
+    # de sala.
+    # ---------------------------------
+
+    if mentioned_types:
+
+        for room_type in room_type_names:
+
+            if room_type in mentioned_types:
+                continue
+
+            actual = actual_counts[
+                room_type
+            ]
+
+            if actual > 0:
+
+                errors.append(
+                    f"A descrição não solicita "
+                    f"salas do tipo '{room_type}', "
+                    f"mas foram geradas {actual}."
+                )
+
+    # ---------------------------------
+    # Verificar quantidade total
+    #
+    # Só fazemos isso quando a descrição
+    # especifica uma quantidade para todos
+    # os tipos gerados.
+    # ---------------------------------
+
     if requested_counts:
-        expected_total = sum(
-            requested_counts.values()
-        )
 
-        actual_total = len(
-            dungeon.rooms
-        )
+        generated_types = {
+            room.type
+            for room in dungeon.rooms
+        }
 
-        if (
-            actual_total != expected_total
-            and all(
-                room.type in requested_counts
-                for room in dungeon.rooms
-            )
+        if generated_types.issubset(
+            set(requested_counts.keys())
         ):
 
-            errors.append(
-                f"A descrição solicita "
-                f"{expected_total} sala(s) "
-                f"no total, mas foram "
-                f"geradas {actual_total}."
+            expected_total = sum(
+                requested_counts.values()
             )
+
+            actual_total = len(
+                dungeon.rooms
+            )
+
+            if actual_total != expected_total:
+
+                errors.append(
+                    f"A descrição solicita "
+                    f"{expected_total} sala(s) "
+                    f"no total, mas foram "
+                    f"geradas {actual_total}."
+                )
+
+    return errors
+
+def validate_structure(
+    dungeon: Dungeon,
+    description: str
+) -> list[str]:
+    errors = []
+    description_lower = description.lower()
+
+    requires_two_paths = (
+        (
+            "dois caminhos" in description_lower
+            or "duas caminhos" in description_lower
+        )
+        and (
+            "se encontram" in description_lower
+            or "se encontre" in description_lower
+            or "encontram" in description_lower
+        )
+        and (
+            "chefe" in description_lower
+            or "boss" in description_lower
+        )
+    )
+
+    if not requires_two_paths:
+        return errors
+
+    start_rooms = [
+        room.id
+        for room in dungeon.rooms
+        if room.type == "start"
+    ]
+
+    boss_rooms = [
+        room.id
+        for room in dungeon.rooms
+        if room.type == "boss"
+    ]
+
+    if not start_rooms or not boss_rooms:
+        return errors
+
+    start_id = start_rooms[0]
+    boss_id = boss_rooms[0]
+
+    graph: dict[int, set[int]] = {
+        room.id: set()
+        for room in dungeon.rooms
+    }
+
+    for connection in dungeon.connections:
+
+        graph[
+            connection.start
+        ].add(
+            connection.end
+        )
+
+        graph[
+            connection.end
+        ].add(
+            connection.start
+        )
+
+    def find_path(
+        blocked_edges: set[tuple[int, int]]
+    ) -> list[int] | None:
+
+        queue = [start_id]
+
+        previous: dict[
+            int,
+            int | None
+        ] = {
+            start_id: None
+        }
+
+        while queue:
+
+            current = queue.pop(0)
+
+            if current == boss_id:
+                break
+
+            for neighbor in graph[current]:
+
+                edge = tuple(
+                    sorted(
+                        (
+                            current,
+                            neighbor
+                        )
+                    )
+                )
+
+                if edge in blocked_edges:
+                    continue
+
+                if neighbor in previous:
+                    continue
+
+                previous[neighbor] = current
+                queue.append(neighbor)
+
+        if boss_id not in previous:
+            return None
+
+        path = []
+
+        current = boss_id
+
+        while current is not None:
+
+            path.append(current)
+
+            current = previous[current]
+
+        path.reverse()
+
+        return path
+
+    first_path = find_path(set())
+
+    if first_path is None:
+
+        errors.append(
+            "Não existe um caminho entre "
+            "a sala inicial e a sala de chefe."
+        )
+
+        return errors
+
+    blocked_edges = set()
+
+    for i in range(
+        len(first_path) - 1
+    ):
+
+        edge = tuple(
+            sorted(
+                (
+                    first_path[i],
+                    first_path[i + 1]
+                )
+            )
+        )
+
+        blocked_edges.add(edge)
+
+    second_path = find_path(
+        blocked_edges
+    )
+
+    if second_path is None:
+
+        errors.append(
+            "A descrição solicita dois caminhos "
+            "diferentes entre a sala inicial e "
+            "a sala de chefe, mas a dungeon "
+            "possui apenas um caminho."
+        )
+
+        return errors
+
+    if first_path[-1] != boss_id:
+        errors.append(
+            "O primeiro caminho não termina "
+            "na sala de chefe."
+        )
+
+    if second_path[-1] != boss_id:
+        errors.append(
+            "O segundo caminho não termina "
+            "na sala de chefe."
+        )
+
+    if len(graph[boss_id]) > 2:
+        errors.append(
+            "A sala de chefe deve ser o ponto "
+            "final onde os caminhos se encontram. "
+            "Não devem existir conexões adicionais "
+            "depois da sala de chefe."
+        )
+
+    first_internal = set(
+        first_path[1:-1]
+    )
+
+    second_internal = set(
+        second_path[1:-1]
+    )
+
+    common_internal = (
+        first_internal
+        & second_internal
+    )
+
+    if common_internal:
+        errors.append(
+            "A dungeon deve possuir dois "
+            "caminhos distintos entre START "
+            "e BOSS. Os dois caminhos podem "
+            "compartilhar apenas a sala inicial "
+            "e a sala de chefe."
+        )
 
     return errors
 
@@ -585,11 +893,17 @@ def generate_dungeon(description: str) -> Dungeon:
                 dungeon,
                 description
             )
+            
+            structure_errors = validate_structure(
+                dungeon,
+                description
+            )
 
             all_logic_errors = (
                 connectivity_errors
                 + logic_errors
                 + requirement_errors
+                + structure_errors
             )
             
             if all_logic_errors:
