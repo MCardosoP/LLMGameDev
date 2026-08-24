@@ -1,7 +1,6 @@
 extends Node2D
 
 @onready var tilemap = $TileMap
-@onready var camera = $Camera2D
 
 var level_data
 var room_positions = {}
@@ -32,85 +31,171 @@ func generate_level():
 	tilemap.clear()
 	room_positions.clear()
 	occupied.clear()
-	
+
+	if level_data == null:
+		return
+
+	position_rooms()
+	generate_connections()
+
+func position_rooms():
 	var rooms = level_data["rooms"]
-	var current_pos = Vector2i(0, 0)
+	var connections = level_data["connections"]
+	var graph = {}
 
 	for room in rooms:
-		room_positions[room["id"]] = current_pos
-		occupied[current_pos] = true
+		graph[room["id"]] = []
 
-		draw_room(current_pos, room["type"])
+	for conn in connections:
+		var start = conn[0]
+		var end = conn[1]
+		graph[start].append(end)
+		graph[end].append(start)
 
-		var tries = 0
-		var next_pos
+	var start_id = -1
 
-		while tries < 10:
-			var dir = directions[randi() % directions.size()]
-			next_pos = current_pos + dir * 5
+	for room in rooms:
+		if room["type"] == "start":
+			start_id = room["id"]
+			break
 
-			if not occupied.has(next_pos):
-				break
+	if start_id == -1:
+		print("Erro: nenhuma sala inicial encontrada.")
+		return
 
-			tries += 1
+	var distance = {}
+	var queue = []
+	distance[start_id] = 0
+	queue.append(start_id)
 
-		current_pos = next_pos
+	while not queue.is_empty():
+		var current = queue.pop_front()
+		
+		for neighbor in graph[current]:
+			
+			if not distance.has(neighbor):
+				distance[neighbor] = (
+					distance[current] + 1
+				)
 
-	generate_connections()
-	adjust_camera()
+				queue.append(neighbor)
+
+	var layers = {}
+
+	for room in rooms:
+		var id = room["id"]
+
+		if not distance.has(id):
+			distance[id] = 0
+
+		var layer = distance[id]
+
+		if not layers.has(layer):
+			layers[layer] = []
+
+		layers[layer].append(id)
+
+	var sorted_layers = layers.keys()
+	sorted_layers.sort()
+	var horizontal_spacing = 5
+	var vertical_spacing = 5
+
+	for layer in sorted_layers:
+		var layer_rooms = layers[layer]
+		var count = layer_rooms.size()
+
+		for i in range(count):
+			var room_id = layer_rooms[i]
+			
+			var y_offset = (
+				i - (count - 1) / 2.0
+			)
+			var x = layer * horizontal_spacing
+			var y = int(
+				y_offset * vertical_spacing
+			)
+			var pos = Vector2i(
+				x,
+				y
+			)
+
+			while occupied.has(pos):
+				pos.y += vertical_spacing
+
+			room_positions[
+				room_id
+			] = pos
+			occupied[pos] = true
+
+	for room in rooms:
+		var id = room["id"]
+		var pos = room_positions[id]
+		draw_room(
+			pos,
+			room["type"]
+		)
 
 func draw_room(pos, type):
-	var atlas_coords = Vector2i(0,0)
+	var atlas_coords = Vector2i(0, 0)
 
 	if type == "start":
-		atlas_coords = Vector2i(1,0)
+		atlas_coords = Vector2i(1, 0)
 	elif type == "boss":
-		atlas_coords = Vector2i(2,0)
-	elif type == "treasure":
-		atlas_coords = Vector2i(3,0)
-	elif type == "key":
-		atlas_coords = Vector2i(4,0)
-	elif type == "locked":
-		atlas_coords = Vector2i(5,0)
+		atlas_coords = Vector2i(2, 0)
 	elif type == "enemy":
-		atlas_coords = Vector2i(0,0)
+		atlas_coords = Vector2i(0, 0)
+	elif type == "treasure":
+		atlas_coords = Vector2i(3, 0)
+	elif type == "key":
+		atlas_coords = Vector2i(4, 0)
+	elif type == "locked":
+		atlas_coords = Vector2i(5, 0)
 
 	for i in range(3):
 		for j in range(3):
-			tilemap.set_cell(0, pos + Vector2i(i, j), 0, atlas_coords)
+			tilemap.set_cell(
+				0,
+				pos + Vector2i(i, j),
+				0,
+				atlas_coords
+			)
 
 func generate_connections():
 	var connections = level_data["connections"]
 
 	for conn in connections:
-		var start = room_positions[conn[0]]
-		var end = room_positions[conn[1]]
-
-		draw_corridor(start, end)
+		var start = room_positions[
+			conn[0]
+		]
+		var end = room_positions[
+			conn[1]
+		]
+		draw_corridor(
+			start,
+			end
+		)
 
 func draw_corridor(start, end):
 	var pos = start
 
 	while pos.x != end.x:
-		pos.x += sign(end.x - pos.x)
-		tilemap.set_cell(0, pos, 0, Vector2i(0,0))
+		pos.x += sign(
+			end.x - pos.x
+		)
+		tilemap.set_cell(
+			0,
+			pos,
+			0,
+			Vector2i(0, 0)
+		)
 
 	while pos.y != end.y:
-		pos.y += sign(end.y - pos.y)
-		tilemap.set_cell(0, pos, 0, Vector2i(0,0))
-
-func adjust_camera():
-	var used_rect = tilemap.get_used_rect()
-	
-	if used_rect.size == Vector2i.ZERO:
-		return
-	
-	var tile_size = Vector2(tilemap.tile_set.tile_size)
-	var map_size = Vector2(used_rect.size) * tile_size
-	var center = (Vector2(used_rect.position) * tile_size) + map_size / 2.0
-	camera.position = center
-	var viewport = get_viewport_rect().size
-	var zoom_x = map_size.x / viewport.x
-	var zoom_y = map_size.y / viewport.y
-	var zoom_factor = max(zoom_x, zoom_y, 1.0)
-	camera.zoom = Vector2(zoom_factor, zoom_factor) * 1.1
+		pos.y += sign(
+			end.y - pos.y
+		)
+		tilemap.set_cell(
+			0,
+			pos,
+			0,
+			Vector2i(0, 0)
+		)
