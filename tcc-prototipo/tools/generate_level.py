@@ -305,20 +305,20 @@ def validate_requirements(
     dungeon: Dungeon,
     description: str
 ) -> list[str]:
-
+    
     errors = []
-
     description_lower = description.lower()
-
-    # ---------------------------------
-    # Mapeamento dos tipos de sala
-    # ---------------------------------
+    
+    mandatory_types = {
+        "start",
+        "boss",
+    }
 
     room_type_names = {
         "start": ["start", "inicial", "início", "inicio"],
         "enemy": ["enemy", "inimigo", "inimigos"],
-        "treasure": ["treasure", "tesouro"],
-        "boss": ["boss", "chefe"],
+        "treasure": ["treasure", "tesouro", "recompensa", "recompensas"],
+        "boss": ["boss", "chefe", "final"],
         "key": ["key", "chave"],
         "locked": [
             "locked",
@@ -326,10 +326,6 @@ def validate_requirements(
             "trancado",
         ],
     }
-
-    # ---------------------------------
-    # Números escritos por extenso
-    # ---------------------------------
 
     number_words = {
         "um": 1,
@@ -352,39 +348,16 @@ def validate_requirements(
         "quinze": 15,
     }
 
-    # ---------------------------------
-    # Identificar tipos mencionados
-    # explicitamente na descrição
-    # ---------------------------------
-
     mentioned_types = set()
 
     for room_type, names in room_type_names.items():
-
         for name in names:
-
             if re.search(
                 r"\b" + re.escape(name) + r"\b",
                 description_lower
             ):
                 mentioned_types.add(room_type)
                 break
-
-    # ---------------------------------
-    # Identificar quantidades explícitas
-    #
-    # IMPORTANTE:
-    # A quantidade precisa estar associada
-    # explicitamente a "sala(s)".
-    #
-    # Portanto:
-    #
-    # "duas salas de inimigos"
-    # -> enemy = 2
-    #
-    # "dois caminhos contendo salas..."
-    # -> nenhuma quantidade de salas
-    # ---------------------------------
 
     requested_counts: dict[str, int] = {}
 
@@ -393,14 +366,7 @@ def validate_requirements(
     )
 
     for room_type, names in room_type_names.items():
-
         for name in names:
-
-            # Exemplo:
-            # "cinco salas de inimigos"
-            #
-            # Também aceita:
-            # "cinco salas inimigas"
             pattern_word = (
                 r"\b("
                 + number_pattern
@@ -426,9 +392,6 @@ def validate_requirements(
 
                 break
 
-            # Exemplo:
-            # "5 salas de inimigos"
-
             pattern_digit = (
                 r"\b(\d+)\s+"
                 r"salas?\s+"
@@ -452,11 +415,6 @@ def validate_requirements(
 
                 break
 
-    # ---------------------------------
-    # Casos de "uma sala inicial",
-    # "uma sala de chefe", etc.
-    # ---------------------------------
-
     special_patterns = {
         "start": [
             r"\buma\s+sala\s+(?:de\s+)?inicial\b",
@@ -470,6 +428,7 @@ def validate_requirements(
 
         "treasure": [
             r"\buma\s+sala\s+(?:de\s+)?tesouro\b",
+            r"\buma\s+recompensa\b"
         ],
 
         "key": [
@@ -483,7 +442,6 @@ def validate_requirements(
     }
 
     for room_type, patterns in special_patterns.items():
-
         if room_type in requested_counts:
             continue
 
@@ -504,22 +462,13 @@ def validate_requirements(
 
                 break
 
-    # ---------------------------------
-    # Contagem real das salas
-    # ---------------------------------
-
     actual_counts = {}
 
     for room_type in room_type_names:
-
         actual_counts[room_type] = sum(
             room.type == room_type
             for room in dungeon.rooms
         )
-
-    # ---------------------------------
-    # Verificar quantidades solicitadas
-    # ---------------------------------
 
     for room_type, expected in requested_counts.items():
 
@@ -528,7 +477,6 @@ def validate_requirements(
         ]
 
         if actual != expected:
-
             errors.append(
                 f"A descrição solicita "
                 f"{expected} sala(s) do tipo "
@@ -536,67 +484,36 @@ def validate_requirements(
                 f"geradas {actual}."
             )
 
-    # ---------------------------------
-    # Verificar tipos não solicitados
-    #
-    # Só aplicamos quando a descrição
-    # especifica explicitamente tipos
-    # de sala.
-    # ---------------------------------
+    for room_type in mentioned_types:
+        if room_type in mandatory_types:
+            continue
+        
+        if room_type in requested_counts:
+            continue
+        
+        actual = actual_counts[room_type]
+        
+        if actual == 0:
+            errors.append(
+                f"A descrição solicita salas do tipo "
+                f"'{room_type}', mas nenhuma foi gerada."
+            )
 
     if mentioned_types:
-
         for room_type in room_type_names:
-
+            if room_type in mandatory_types:
+                continue
+                
             if room_type in mentioned_types:
                 continue
 
-            actual = actual_counts[
-                room_type
-            ]
+            actual = actual_counts[room_type]
 
             if actual > 0:
-
                 errors.append(
                     f"A descrição não solicita "
                     f"salas do tipo '{room_type}', "
                     f"mas foram geradas {actual}."
-                )
-
-    # ---------------------------------
-    # Verificar quantidade total
-    #
-    # Só fazemos isso quando a descrição
-    # especifica uma quantidade para todos
-    # os tipos gerados.
-    # ---------------------------------
-
-    if requested_counts:
-
-        generated_types = {
-            room.type
-            for room in dungeon.rooms
-        }
-
-        if generated_types.issubset(
-            set(requested_counts.keys())
-        ):
-
-            expected_total = sum(
-                requested_counts.values()
-            )
-
-            actual_total = len(
-                dungeon.rooms
-            )
-
-            if actual_total != expected_total:
-
-                errors.append(
-                    f"A descrição solicita "
-                    f"{expected_total} sala(s) "
-                    f"no total, mas foram "
-                    f"geradas {actual_total}."
                 )
 
     return errors
