@@ -1,6 +1,7 @@
 extends Node2D
 
 @onready var tilemap = $TileMap
+@onready var camera = $Camera2D
 
 var level_data
 var room_positions = {}
@@ -37,6 +38,7 @@ func generate_level():
 
 	position_rooms()
 	generate_connections()
+	fit_camera_to_dungeon()
 
 func position_rooms():
 	var rooms = level_data["rooms"]
@@ -199,3 +201,33 @@ func draw_corridor(start, end):
 			0,
 			Vector2i(0, 0)
 		)
+		
+func fit_camera_to_dungeon():
+	var used_rect = tilemap.get_used_rect()
+
+	if used_rect.size == Vector2i.ZERO:
+		return
+
+	var tile_size = Vector2(tilemap.tile_set.tile_size)
+
+	var dungeon_center = (
+		Vector2(used_rect.position)
+		+ Vector2(used_rect.size) / 2.0
+	) * tile_size
+
+	camera.position = dungeon_center
+
+	var viewport_size = get_viewport_rect().size
+
+	var dungeon_size = Vector2(used_rect.size) * tile_size
+
+	var margin = 100.0
+
+	dungeon_size += Vector2(margin, margin)
+
+	var zoom_x = viewport_size.x / dungeon_size.x
+	var zoom_y = viewport_size.y / dungeon_size.y
+
+	var zoom_value = min(zoom_x, zoom_y)
+
+	camera.zoom = Vector2(zoom_value, zoom_value)

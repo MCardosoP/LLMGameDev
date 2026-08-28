@@ -1,42 +1,58 @@
 {
   "rooms": [
-    {
-      "id": 1,
-      "type": "start"
-    },
-    {
-      "id": 2,
-      "type": "enemy"
-    },
-    {
-      "id": 3,
-      "type": "enemy"
-    },
-    {
-      "id": 4,
-      "type": "treasure"
-    },
-    {
-      "id": 5,
-      "type": "boss"
-    }
+	{
+	  "id": 1,
+	  "type": "start"
+	},
+	{
+	  "id": 2,
+	  "type": "enemy"
+	},
+	{
+	  "id": 3,
+	  "type": "enemy"
+	},
+	{
+	  "id": 4,
+	  "type": "key"
+	},
+	{
+	  "id": 5,
+	  "type": "treasure"
+	},
+	{
+	  "id": 6,
+	  "type": "locked"
+	},
+	{
+	  "id": 7,
+	  "type": "boss"
+	}
   ],
   "connections": [
-    [
-      1,
-      2
-    ],
-    [
-      2,
-      3
-    ],
-    [
-      3,
-      4
-    ],
-    [
-      4,
-      5
-    ]
+	[
+	  1,
+	  2
+	],
+	[
+	  2,
+	  3
+	],
+	[
+	  3,
+	  4
+	],
+	[
+	  4,
+	  5
+	],
+	[
+	  5,
+	  6
+	],
+	[
+	  6,
+	  7
+	]
   ]
 }
