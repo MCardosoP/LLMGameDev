@@ -5,6 +5,7 @@ import sys
 import re
 from pathlib import Path
 from typing import Literal
+from datetime import datetime
 
 import requests
 from pydantic import BaseModel, Field, ValidationError, model_validator
@@ -170,11 +171,9 @@ Retorne somente JSON válido.
 """
 
 def format_validation_errors(error: ValidationError) -> str:
-
     errors = []
 
     for item in error.errors():
-
         location = " → ".join(
             str(part)
             for part in item["loc"]
@@ -209,7 +208,6 @@ def validate_connectivity(dungeon: Dungeon) -> list[str]:
     }
 
     for connection in dungeon.connections:
-
         graph[connection.start].append(
             connection.end
         )
@@ -219,7 +217,6 @@ def validate_connectivity(dungeon: Dungeon) -> list[str]:
         )
 
     for room in dungeon.rooms:
-
         if len(graph[room.id]) == 0:
 
             errors.append(
@@ -229,11 +226,9 @@ def validate_connectivity(dungeon: Dungeon) -> list[str]:
             )
 
     visited = set()
-
     queue = [start_room.id]
 
     while queue:
-
         current = queue.pop(0)
 
         if current in visited:
@@ -242,12 +237,10 @@ def validate_connectivity(dungeon: Dungeon) -> list[str]:
         visited.add(current)
 
         for neighbor in graph[current]:
-
             if neighbor not in visited:
                 queue.append(neighbor)
 
     if boss_room.id not in visited:
-
         errors.append(
             f"A sala boss (id {boss_room.id}) "
             f"não é alcançável a partir da sala "
@@ -299,6 +292,48 @@ def validate_logic(dungeon: Dungeon) -> list[str]:
             "sala do tipo 'key'."
         )
 
+    start_rooms = [
+        room
+        for room in dungeon.rooms
+        if room.type == "start"
+    ]
+
+    if start_rooms:
+
+        start_id = start_rooms[0].id
+
+        for connection in dungeon.connections:
+
+            if connection.end == start_id:
+
+                errors.append(
+                    f"A sala inicial {start_id} "
+                    f"possui uma conexão de entrada."
+                )
+
+                break
+
+    boss_rooms = [
+        room
+        for room in dungeon.rooms
+        if room.type == "boss"
+    ]
+
+    if boss_rooms:
+
+        boss_id = boss_rooms[0].id
+        
+        for connection in dungeon.connections:
+
+            if connection.start == boss_id:
+
+                errors.append(
+                    f"A sala boss {boss_id} "
+                    f"possui uma conexão de saída."
+                )
+
+                break
+    
     return errors
 
 def validate_requirements(
@@ -471,7 +506,6 @@ def validate_requirements(
         )
 
     for room_type, expected in requested_counts.items():
-
         actual = actual_counts[
             room_type
         ]
@@ -595,14 +629,12 @@ def validate_structure(
         }
 
         while queue:
-
             current = queue.pop(0)
 
             if current == boss_id:
                 break
 
             for neighbor in graph[current]:
-
                 edge = tuple(
                     sorted(
                         (
@@ -625,23 +657,18 @@ def validate_structure(
             return None
 
         path = []
-
         current = boss_id
 
         while current is not None:
-
             path.append(current)
-
             current = previous[current]
 
         path.reverse()
-
         return path
 
     first_path = find_path(set())
 
     if first_path is None:
-
         errors.append(
             "Não existe um caminho entre "
             "a sala inicial e a sala de chefe."
@@ -671,7 +698,6 @@ def validate_structure(
     )
 
     if second_path is None:
-
         errors.append(
             "A descrição solicita dois caminhos "
             "diferentes entre a sala inicial e "
@@ -747,7 +773,6 @@ def call_llm(messages: list[dict]) -> str:
     print("Resposta recebida.")
     
     if text.startswith("```"):
-
         text = text.replace(
             "```json",
             ""
@@ -763,13 +788,10 @@ def call_llm(messages: list[dict]) -> str:
     return text
 
 def validate_response(text: str) -> Dungeon:
-
     data = json.loads(text)
-
     return Dungeon.model_validate(data)
 
-def generate_dungeon(description: str) -> Dungeon:
-
+def generate_dungeon(description: str) -> tuple[Dungeon, list[dict]]:
     messages = [
         {
             "role": "system",
@@ -782,6 +804,7 @@ def generate_dungeon(description: str) -> Dungeon:
     ]
 
     last_error = None
+    attempts_log = []
 
     for attempt in range(
         1,
@@ -833,6 +856,15 @@ def generate_dungeon(description: str) -> Dungeon:
                 print(formatted_errors)
                 last_error = formatted_errors
 
+                attempts_log.append(
+                    {
+                        "attempt": attempt,
+                        "valid": False,
+                        "dungeon": dungeon.model_dump(),
+                        "errors": all_logic_errors,
+                    }
+                )
+
                 messages.append(
                     {
                         "role": "assistant",
@@ -854,17 +886,34 @@ def generate_dungeon(description: str) -> Dungeon:
             print(
                 "Dungeon válida."
             )
+            
+            attempts_log.append(
+                {
+                    "attempt": attempt,
+                    "valid": True,
+                    "dungeon": dungeon.model_dump(),
+                    "errors": [],
+                }
+            )
 
-            return dungeon
+            return dungeon, attempts_log
 
         except json.JSONDecodeError as error:
-
             last_error = error
 
             formatted_errors = (
                 "A resposta não é um JSON válido.\n"
                 f"Erro: {error.msg}\n"
                 f"Posição aproximada do erro: {error.pos}"
+            )
+
+            attempts_log.append(
+                {
+                    "attempt": attempt,
+                    "valid": False,
+                    "dungeon": None,
+                    "errors": [formatted_errors],
+                }
             )
 
             print(
@@ -892,13 +941,21 @@ def generate_dungeon(description: str) -> Dungeon:
             )
 
         except ValidationError as error:
-
             last_error = error
 
             formatted_errors = (
                 format_validation_errors(
                     error
                 )
+            )
+
+            attempts_log.append(
+                {
+                    "attempt": attempt,
+                    "valid": False,
+                    "dungeon": None,
+                    "errors": [formatted_errors],
+                }
             )
 
             print(
@@ -937,7 +994,6 @@ def save_for_godot(
     dungeon: Dungeon,
     output_path: Path
 ) -> None:
-
     godot_data = {
         "rooms": [
             {
@@ -964,14 +1020,46 @@ def save_for_godot(
         encoding="utf-8",
     )
 
-def main() -> int:
+def save_experiment_log(
+    experiment_number: int,
+    description: str,
+    attempts: list[dict],
+    output_path: Path,
+) -> None:
 
+    experiment_data = {
+        "experiment": experiment_number,
+        "description": description,
+        "timestamp": datetime.now().isoformat(),
+        "success": bool(attempts and attempts[-1]["valid"]),
+        "total_attempts": len(attempts),
+        "attempts": attempts,
+    }
+
+    output_path.write_text(
+        json.dumps(
+            experiment_data,
+            indent=2,
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+def main() -> int:
     project_root = (
         Path(__file__).resolve().parent.parent
     )
 
     output_path = (
         project_root / "level.json"
+    )
+    
+    experiments_path = (
+        project_root / "experiments"
+    )
+    
+    experiments_path.mkdir(
+        exist_ok=True
     )
 
     description = (
@@ -980,19 +1068,30 @@ def main() -> int:
             "Descreva o nível desejado: "
         ).strip()
     )
+    
+    experiment_number_text = input(
+        "Número do experimento: "
+    ).strip()
 
     if not description:
-
         print(
             "A descrição do nível "
             "não pode estar vazia."
         )
-
         return 1
 
-    try:
+    if not experiment_number_text.isdigit():
+        print(
+            "O número do experimento deve ser um número inteiro."
+        )
+        return 1
+    
+    experiment_number = int(
+        experiment_number_text
+    )
 
-        dungeon = generate_dungeon(
+    try:
+        dungeon, attempts_log = generate_dungeon(
             description
         )
 
@@ -1000,9 +1099,20 @@ def main() -> int:
             dungeon,
             output_path,
         )
+        
+        experiment_output_path = (
+            experiments_path
+            / f"experiment_{experiment_number:02d}.json"
+        )
+        
+        save_experiment_log(
+            experiment_number,
+            description,
+            attempts_log,
+            experiment_output_path
+        )
 
     except Exception as error:
-
         print(
             f"\nErro ao gerar o nível:\n"
             f"{error}"
