@@ -6,15 +6,11 @@
     },
     {
       "id": 2,
-      "type": "key"
+      "type": "enemy"
     },
     {
       "id": 3,
       "type": "boss"
-    },
-    {
-      "id": 4,
-      "type": "locked"
     }
   ],
   "connections": [
@@ -25,10 +21,6 @@
     [
       2,
       3
-    ],
-    [
-      3,
-      4
     ]
   ]
 }

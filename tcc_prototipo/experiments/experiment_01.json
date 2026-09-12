@@ -1,0 +1,40 @@
+{
+  "experiment": 1,
+  "description": "Crie uma dungeon simples com uma sala inicial, uma sala de inimigos e uma sala de chefe.",
+  "timestamp": "2026-09-12T18:47:00.012680",
+  "success": true,
+  "total_attempts": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "valid": true,
+      "dungeon": {
+        "rooms": [
+          {
+            "id": 1,
+            "type": "start"
+          },
+          {
+            "id": 2,
+            "type": "enemy"
+          },
+          {
+            "id": 3,
+            "type": "boss"
+          }
+        ],
+        "connections": [
+          {
+            "start": 1,
+            "end": 2
+          },
+          {
+            "start": 2,
+            "end": 3
+          }
+        ]
+      },
+      "errors": []
+    }
+  ]
+}
