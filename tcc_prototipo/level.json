@@ -1,26 +1,26 @@
 {
   "rooms": [
-    {
-      "id": 1,
-      "type": "start"
-    },
-    {
-      "id": 2,
-      "type": "enemy"
-    },
-    {
-      "id": 3,
-      "type": "boss"
-    }
+	{
+	  "id": 1,
+	  "type": "start"
+	},
+	{
+	  "id": 2,
+	  "type": "enemy"
+	},
+	{
+	  "id": 3,
+	  "type": "boss"
+	}
   ],
   "connections": [
-    [
-      1,
-      2
-    ],
-    [
-      2,
-      3
-    ]
+	[
+	  1,
+	  2
+	],
+	[
+	  2,
+	  3
+	]
   ]
 }

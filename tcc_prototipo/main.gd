@@ -6,6 +6,7 @@ extends Node2D
 var level_data
 var room_positions = {}
 var occupied = {}
+var experiment_files = []
 
 var directions = [
 	Vector2i(1, 0),
@@ -15,18 +16,125 @@ var directions = [
 ]
 
 func _ready():
-	load_json()
-	generate_level()
+	load_experiments()
 
-func load_json():
-	var file = FileAccess.open("res://level.json", FileAccess.READ)
+func load_experiments():
+	var directory = DirAccess.open(
+		"res://experiments"
+	)
+	
+	if directory == null:
+		print("Erro: pasta experiments não encontrada.")
+		return
+	
+	experiment_files.clear()
+	directory.list_dir_begin()
+	var file_name = directory.get_next()
+	
+	while file_name != "":
+		if (
+			not directory.current_is_dir()
+			and file_name.ends_with(".json")
+		):
+			experiment_files.append(file_name)
+		
+		file_name = directory.get_next()
+	
+	directory.list_dir_end()
+	experiment_files.sort()
+	
+	if experiment_files.is_empty():
+		print("Nenhum experimento encontrado.")
+		return
+	
+	show_experiment_selection()
+
+func show_experiment_selection():
+	var panel = Panel.new()
+	panel.name = "ExperimentSelection"
+	panel.position = Vector2(50, 50)
+
+	panel.size = Vector2(
+		300,
+		100 + experiment_files.size() * 40
+	)
+
+	add_child(panel)
+	var title = Label.new()
+	title.text = "Escolha um experimento:"
+
+	title.position = Vector2(20, 15)
+	panel.add_child(title)
+
+	for i in range(experiment_files.size()):
+		var button = Button.new()
+		button.text = experiment_files[i]
+
+		button.position = Vector2(
+			20,
+			50 + i * 40
+		)
+
+		button.size = Vector2(250, 30)
+
+		button.pressed.connect(
+			load_selected_experiment.bind(
+				experiment_files[i],
+				panel
+			)
+		)
+
+		panel.add_child(button)
+
+func load_selected_experiment(
+	file_name,
+	panel
+):
+	var file = FileAccess.open(
+		"res://experiments/" + file_name,
+		FileAccess.READ
+	)
+
+	if file == null:
+		print("Erro ao abrir: ", file_name)
+		return
+
 	var text = file.get_as_text()
 	var result = JSON.parse_string(text)
 
 	if result == null:
-		print("Erro ao ler JSON")
-	else:
-		level_data = result
+		print("Erro ao ler JSON: ", file_name)
+		return
+
+	var attempts = result.get("attempts", [])
+
+	# Procura a última tentativa válida
+	for i in range(attempts.size() - 1, -1, -1):
+		var attempt = attempts[i]
+
+		if attempt.get("valid", false):
+			level_data = attempt.get("dungeon")
+
+			if level_data == null:
+				print("Erro: dungeon não encontrada no experimento.")
+				return
+
+			# Converte as conexões para o formato usado pelo Godot
+			var converted_connections = []
+
+			for connection in level_data["connections"]:
+				converted_connections.append([
+					connection["start"],
+					connection["end"]
+				])
+
+			level_data["connections"] = converted_connections
+
+			panel.queue_free()
+			generate_level()
+			return
+
+	print("Nenhuma tentativa válida encontrada em: ", file_name)
 
 func generate_level():
 	tilemap.clear()
