@@ -11,4 +11,4 @@
 - Sala trancada: roxo
 
 Testando validação dos requisitos enviados através do prompt (legenda inclusa em cada imagem).
-Sem cronometragem de tempo ou indicador de uso de recursos.
+Cronometra quanto tempo foi necessário e quantos tokens foram usados para gerar a resposta.

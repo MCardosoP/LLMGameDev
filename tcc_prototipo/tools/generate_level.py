@@ -146,7 +146,7 @@ A resposta deve começar com { e terminar com }.
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
 
-MODEL_NAME = "llama3.2"
+MODEL_NAME = "qwen2.5:7b"
 
 MAX_ATTEMPTS = 3
 
@@ -752,40 +752,31 @@ def validate_structure(
     return errors
 
 def call_llm(messages: list[dict]) -> str:
-    print("Enviando requisição para Ollama...")
     response = requests.post(
         OLLAMA_URL,
         json={
             "model": MODEL_NAME,
             "messages": messages,
             "stream": False,
+            "format": Dungeon.model_json_schema(),
             "options": {
-                "temperature": 0.1
-            }
+                "temperature": 0.3,   # 0.1 favorece loops de repetição
+                "num_predict": 700,   # teto de tokens; ajuste conforme o tamanho da dungeon
+                "num_ctx": 4096,
+            },
         },
-        timeout=240,
+        timeout=(10, 120),
     )
-    
-    print("Ollama respondeu.")
     response.raise_for_status()
-    print("Status HTTP:", response.status_code)
-    text = response.json()["message"]["content"].strip()
-    print("Resposta recebida.")
-    
-    if text.startswith("```"):
-        text = text.replace(
-            "```json",
-            ""
-        )
+    body = response.json()
 
-        text = text.replace(
-            "```",
-            ""
-        )
+    print(
+        f"tokens: {body.get('eval_count')} | "
+        f"fim: {body.get('done_reason')} | "
+        f"{body.get('total_duration', 0) / 1e9:.1f}s"
+    )
 
-        text = text.strip()
-
-    return text
+    return body["message"]["content"].strip()
 
 def validate_response(text: str) -> Dungeon:
     data = json.loads(text)

@@ -1,0 +1,52 @@
+{
+  "experiment": 4,
+  "description": "Crie uma dungeon com uma sala inicial, dois caminhos diferentes contendo salas de inimigos e uma sala de chefe onde os dois caminhos se encontram.",
+  "timestamp": "2026-09-20T23:29:01.998773",
+  "success": true,
+  "total_attempts": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "valid": true,
+      "dungeon": {
+        "rooms": [
+          {
+            "id": 1,
+            "type": "start"
+          },
+          {
+            "id": 2,
+            "type": "enemy"
+          },
+          {
+            "id": 3,
+            "type": "enemy"
+          },
+          {
+            "id": 4,
+            "type": "boss"
+          }
+        ],
+        "connections": [
+          {
+            "start": 1,
+            "end": 2
+          },
+          {
+            "start": 1,
+            "end": 3
+          },
+          {
+            "start": 2,
+            "end": 4
+          },
+          {
+            "start": 3,
+            "end": 4
+          }
+        ]
+      },
+      "errors": []
+    }
+  ]
+}

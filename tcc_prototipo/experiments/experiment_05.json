@@ -1,0 +1,48 @@
+{
+  "experiment": 5,
+  "description": "Crie uma dungeon pequena e perigosa, com alguns inimigos, uma recompensa e um chefe no final.",
+  "timestamp": "2026-09-20T23:34:36.894860",
+  "success": true,
+  "total_attempts": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "valid": true,
+      "dungeon": {
+        "rooms": [
+          {
+            "id": 1,
+            "type": "start"
+          },
+          {
+            "id": 2,
+            "type": "enemy"
+          },
+          {
+            "id": 3,
+            "type": "treasure"
+          },
+          {
+            "id": 4,
+            "type": "boss"
+          }
+        ],
+        "connections": [
+          {
+            "start": 1,
+            "end": 2
+          },
+          {
+            "start": 2,
+            "end": 3
+          },
+          {
+            "start": 3,
+            "end": 4
+          }
+        ]
+      },
+      "errors": []
+    }
+  ]
+}

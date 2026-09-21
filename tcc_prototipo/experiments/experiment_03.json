@@ -1,0 +1,72 @@
+{
+  "experiment": 3,
+  "description": "Crie uma dungeon contendo uma sala inicial, salas de inimigos, uma sala de tesouro, uma sala com chave, uma sala trancada e uma sala de chefe.",
+  "timestamp": "2026-09-20T23:33:08.794722",
+  "success": true,
+  "total_attempts": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "valid": true,
+      "dungeon": {
+        "rooms": [
+          {
+            "id": 1,
+            "type": "start"
+          },
+          {
+            "id": 2,
+            "type": "enemy"
+          },
+          {
+            "id": 3,
+            "type": "enemy"
+          },
+          {
+            "id": 4,
+            "type": "treasure"
+          },
+          {
+            "id": 5,
+            "type": "key"
+          },
+          {
+            "id": 6,
+            "type": "locked"
+          },
+          {
+            "id": 7,
+            "type": "boss"
+          }
+        ],
+        "connections": [
+          {
+            "start": 1,
+            "end": 2
+          },
+          {
+            "start": 2,
+            "end": 3
+          },
+          {
+            "start": 3,
+            "end": 4
+          },
+          {
+            "start": 4,
+            "end": 5
+          },
+          {
+            "start": 5,
+            "end": 6
+          },
+          {
+            "start": 6,
+            "end": 7
+          }
+        ]
+      },
+      "errors": []
+    }
+  ]
+}

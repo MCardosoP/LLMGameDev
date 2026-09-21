@@ -1,0 +1,76 @@
+{
+  "experiment": 6,
+  "description": "Crie uma dungeon com uma área inicial segura. O jogador deve enfrentar alguns inimigos antes de encontrar uma chave. Depois deve encontrar uma porta trancada que leva à área final, onde está o chefe. Inclua também uma sala de tesouro em um caminho opcional.",
+  "timestamp": "2026-09-20T23:38:35.563816",
+  "success": true,
+  "total_attempts": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "valid": true,
+      "dungeon": {
+        "rooms": [
+          {
+            "id": 1,
+            "type": "start"
+          },
+          {
+            "id": 2,
+            "type": "enemy"
+          },
+          {
+            "id": 3,
+            "type": "enemy"
+          },
+          {
+            "id": 4,
+            "type": "key"
+          },
+          {
+            "id": 5,
+            "type": "locked"
+          },
+          {
+            "id": 6,
+            "type": "boss"
+          },
+          {
+            "id": 7,
+            "type": "treasure"
+          }
+        ],
+        "connections": [
+          {
+            "start": 1,
+            "end": 2
+          },
+          {
+            "start": 2,
+            "end": 3
+          },
+          {
+            "start": 3,
+            "end": 4
+          },
+          {
+            "start": 4,
+            "end": 5
+          },
+          {
+            "start": 1,
+            "end": 7
+          },
+          {
+            "start": 7,
+            "end": 6
+          },
+          {
+            "start": 5,
+            "end": 6
+          }
+        ]
+      },
+      "errors": []
+    }
+  ]
+}
