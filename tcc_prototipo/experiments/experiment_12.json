@@ -1,0 +1,66 @@
+{
+  "experiment": 12,
+  "description": "Crie uma dungeon de dificuldade média, com alguns inimigos, um tesouro, uma chave e uma área trancada, terminando em um chefe.",
+  "timestamp": "2026-10-02T00:57:16.558287",
+  "success": true,
+  "total_attempts": 1,
+  "total_time_seconds": 34.9,
+  "attempts": [
+    {
+      "attempt": 1,
+      "valid": true,
+      "dungeon": {
+        "rooms": [
+          {
+            "id": 1,
+            "type": "start"
+          },
+          {
+            "id": 2,
+            "type": "enemy"
+          },
+          {
+            "id": 3,
+            "type": "treasure"
+          },
+          {
+            "id": 4,
+            "type": "key"
+          },
+          {
+            "id": 5,
+            "type": "locked"
+          },
+          {
+            "id": 6,
+            "type": "boss"
+          }
+        ],
+        "connections": [
+          {
+            "start": 1,
+            "end": 2
+          },
+          {
+            "start": 2,
+            "end": 3
+          },
+          {
+            "start": 3,
+            "end": 4
+          },
+          {
+            "start": 4,
+            "end": 5
+          },
+          {
+            "start": 5,
+            "end": 6
+          }
+        ]
+      },
+      "errors": [],
+      "time_seconds": 34.9
+    }
+  ]
+}

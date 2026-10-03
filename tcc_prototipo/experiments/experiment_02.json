@@ -1,9 +1,10 @@
 {
   "experiment": 2,
   "description": "Crie uma dungeon linear com uma sala inicial, cinco salas de inimigos e uma sala de chefe.",
-  "timestamp": "2026-09-20T23:31:23.316506",
+  "timestamp": "2026-10-02T00:17:56.937755",
   "success": true,
   "total_attempts": 1,
+  "total_time_seconds": 50.49,
   "attempts": [
     {
       "attempt": 1,
@@ -66,7 +67,8 @@
           }
         ]
       },
-      "errors": []
+      "errors": [],
+      "time_seconds": 50.49
     }
   ]
 }

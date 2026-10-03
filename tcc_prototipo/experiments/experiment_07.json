@@ -1,0 +1,82 @@
+{
+  "experiment": 7,
+  "description": "Crie uma dungeon com uma sala inicial, três salas de inimigos, uma sala de tesouro, uma sala com uma chave, uma sala trancada e uma sala de chefe. A chave deve aparecer antes da sala trancada.",
+  "timestamp": "2026-10-02T00:27:06.972749",
+  "success": true,
+  "total_attempts": 1,
+  "total_time_seconds": 58.55,
+  "attempts": [
+    {
+      "attempt": 1,
+      "valid": true,
+      "dungeon": {
+        "rooms": [
+          {
+            "id": 1,
+            "type": "start"
+          },
+          {
+            "id": 2,
+            "type": "enemy"
+          },
+          {
+            "id": 3,
+            "type": "enemy"
+          },
+          {
+            "id": 4,
+            "type": "enemy"
+          },
+          {
+            "id": 5,
+            "type": "treasure"
+          },
+          {
+            "id": 6,
+            "type": "key"
+          },
+          {
+            "id": 7,
+            "type": "locked"
+          },
+          {
+            "id": 8,
+            "type": "boss"
+          }
+        ],
+        "connections": [
+          {
+            "start": 1,
+            "end": 2
+          },
+          {
+            "start": 2,
+            "end": 3
+          },
+          {
+            "start": 3,
+            "end": 4
+          },
+          {
+            "start": 4,
+            "end": 5
+          },
+          {
+            "start": 5,
+            "end": 6
+          },
+          {
+            "start": 6,
+            "end": 7
+          },
+          {
+            "start": 7,
+            "end": 8
+          }
+        ]
+      },
+      "errors": [],
+      "time_seconds": 58.55
+    }
+  ]
+}

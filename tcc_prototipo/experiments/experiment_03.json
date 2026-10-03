@@ -1,9 +1,10 @@
 {
   "experiment": 3,
   "description": "Crie uma dungeon contendo uma sala inicial, salas de inimigos, uma sala de tesouro, uma sala com chave, uma sala trancada e uma sala de chefe.",
-  "timestamp": "2026-09-20T23:33:08.794722",
+  "timestamp": "2026-10-02T00:19:13.268600",
   "success": true,
   "total_attempts": 1,
+  "total_time_seconds": 58.11,
   "attempts": [
     {
       "attempt": 1,
@@ -66,7 +67,8 @@
           }
         ]
       },
-      "errors": []
+      "errors": [],
+      "time_seconds": 58.11
     }
   ]
 }

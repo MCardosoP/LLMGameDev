@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 from typing import Literal
 from datetime import datetime
+from time import perf_counter
 
 import requests
 from pydantic import BaseModel, Field, ValidationError, model_validator
@@ -802,6 +803,8 @@ def generate_dungeon(description: str) -> tuple[Dungeon, list[dict]]:
         MAX_ATTEMPTS + 1
     ):
 
+        attempt_start = perf_counter()
+
         print(
             f"\nTentativa "
             f"{attempt}/{MAX_ATTEMPTS}"
@@ -853,6 +856,10 @@ def generate_dungeon(description: str) -> tuple[Dungeon, list[dict]]:
                         "valid": False,
                         "dungeon": dungeon.model_dump(),
                         "errors": all_logic_errors,
+                        "time_seconds": round(
+                            perf_counter() - attempt_start,
+                            2
+                        ),
                     }
                 )
 
@@ -884,6 +891,10 @@ def generate_dungeon(description: str) -> tuple[Dungeon, list[dict]]:
                     "valid": True,
                     "dungeon": dungeon.model_dump(),
                     "errors": [],
+                    "time_seconds": round(
+                        perf_counter() - attempt_start,
+                        2
+                    ),
                 }
             )
 
@@ -904,6 +915,10 @@ def generate_dungeon(description: str) -> tuple[Dungeon, list[dict]]:
                     "valid": False,
                     "dungeon": None,
                     "errors": [formatted_errors],
+                    "time_seconds": round(
+                        perf_counter() - attempt_start,
+                        2
+                    ),
                 }
             )
 
@@ -946,6 +961,10 @@ def generate_dungeon(description: str) -> tuple[Dungeon, list[dict]]:
                     "valid": False,
                     "dungeon": None,
                     "errors": [formatted_errors],
+                    "time_seconds": round(
+                        perf_counter() - attempt_start,
+                        2
+                    ),
                 }
             )
 
@@ -1015,6 +1034,7 @@ def save_experiment_log(
     experiment_number: int,
     description: str,
     attempts: list[dict],
+    total_time_seconds: float,
     output_path: Path,
 ) -> None:
 
@@ -1024,6 +1044,7 @@ def save_experiment_log(
         "timestamp": datetime.now().isoformat(),
         "success": bool(attempts and attempts[-1]["valid"]),
         "total_attempts": len(attempts),
+        "total_time_seconds": round(total_time_seconds, 2),
         "attempts": attempts,
     }
 
@@ -1082,9 +1103,13 @@ def main() -> int:
     )
 
     try:
+        experiment_start = perf_counter()
+
         dungeon, attempts_log = generate_dungeon(
             description
         )
+
+        total_time_seconds = perf_counter() - experiment_start
 
         save_for_godot(
             dungeon,
@@ -1100,6 +1125,7 @@ def main() -> int:
             experiment_number,
             description,
             attempts_log,
+            total_time_seconds,
             experiment_output_path
         )
 

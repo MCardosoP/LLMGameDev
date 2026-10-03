@@ -1,9 +1,10 @@
 {
   "experiment": 4,
   "description": "Crie uma dungeon com uma sala inicial, dois caminhos diferentes contendo salas de inimigos e uma sala de chefe onde os dois caminhos se encontram.",
-  "timestamp": "2026-09-20T23:29:01.998773",
+  "timestamp": "2026-10-02T00:20:48.001114",
   "success": true,
   "total_attempts": 1,
+  "total_time_seconds": 36.74,
   "attempts": [
     {
       "attempt": 1,
@@ -46,7 +47,8 @@
           }
         ]
       },
-      "errors": []
+      "errors": [],
+      "time_seconds": 36.74
     }
   ]
 }

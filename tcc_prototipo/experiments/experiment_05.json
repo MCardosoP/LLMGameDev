@@ -1,9 +1,10 @@
 {
   "experiment": 5,
   "description": "Crie uma dungeon pequena e perigosa, com alguns inimigos, uma recompensa e um chefe no final.",
-  "timestamp": "2026-09-20T23:34:36.894860",
+  "timestamp": "2026-10-02T00:23:24.137115",
   "success": true,
   "total_attempts": 1,
+  "total_time_seconds": 34.01,
   "attempts": [
     {
       "attempt": 1,
@@ -42,7 +43,8 @@
           }
         ]
       },
-      "errors": []
+      "errors": [],
+      "time_seconds": 34.01
     }
   ]
 }

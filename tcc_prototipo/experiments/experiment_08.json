@@ -1,0 +1,86 @@
+{
+  "experiment": 8,
+  "description": "Crie uma dungeon com uma sala inicial, quatro salas de inimigos, duas salas de tesouro e uma sala de chefe. Deve existir dois caminhos diferentes entre a sala inicial e a sala de chefe, que se encontram somente na sala de chefe.",
+  "timestamp": "2026-10-02T00:29:08.498588",
+  "success": true,
+  "total_attempts": 1,
+  "total_time_seconds": 63.03,
+  "attempts": [
+    {
+      "attempt": 1,
+      "valid": true,
+      "dungeon": {
+        "rooms": [
+          {
+            "id": 1,
+            "type": "start"
+          },
+          {
+            "id": 2,
+            "type": "enemy"
+          },
+          {
+            "id": 3,
+            "type": "enemy"
+          },
+          {
+            "id": 4,
+            "type": "enemy"
+          },
+          {
+            "id": 5,
+            "type": "enemy"
+          },
+          {
+            "id": 6,
+            "type": "treasure"
+          },
+          {
+            "id": 7,
+            "type": "treasure"
+          },
+          {
+            "id": 8,
+            "type": "boss"
+          }
+        ],
+        "connections": [
+          {
+            "start": 1,
+            "end": 2
+          },
+          {
+            "start": 1,
+            "end": 3
+          },
+          {
+            "start": 2,
+            "end": 4
+          },
+          {
+            "start": 3,
+            "end": 5
+          },
+          {
+            "start": 4,
+            "end": 6
+          },
+          {
+            "start": 5,
+            "end": 7
+          },
+          {
+            "start": 6,
+            "end": 8
+          },
+          {
+            "start": 7,
+            "end": 8
+          }
+        ]
+      },
+      "errors": [],
+      "time_seconds": 63.03
+    }
+  ]
+}

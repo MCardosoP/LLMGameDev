@@ -1,0 +1,66 @@
+{
+  "experiment": 11,
+  "description": "O jogador começa em uma sala inicial. Durante o percurso deverá enfrentar três inimigos e encontrar um tesouro antes de chegar ao chefe final.",
+  "timestamp": "2026-10-02T00:56:17.845658",
+  "success": true,
+  "total_attempts": 1,
+  "total_time_seconds": 35.25,
+  "attempts": [
+    {
+      "attempt": 1,
+      "valid": true,
+      "dungeon": {
+        "rooms": [
+          {
+            "id": 1,
+            "type": "start"
+          },
+          {
+            "id": 2,
+            "type": "enemy"
+          },
+          {
+            "id": 3,
+            "type": "enemy"
+          },
+          {
+            "id": 4,
+            "type": "treasure"
+          },
+          {
+            "id": 5,
+            "type": "enemy"
+          },
+          {
+            "id": 6,
+            "type": "boss"
+          }
+        ],
+        "connections": [
+          {
+            "start": 1,
+            "end": 2
+          },
+          {
+            "start": 2,
+            "end": 3
+          },
+          {
+            "start": 3,
+            "end": 4
+          },
+          {
+            "start": 4,
+            "end": 5
+          },
+          {
+            "start": 5,
+            "end": 6
+          }
+        ]
+      },
+      "errors": [],
+      "time_seconds": 35.25
+    }
+  ]
+}

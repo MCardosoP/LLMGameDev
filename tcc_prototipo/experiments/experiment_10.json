@@ -1,0 +1,118 @@
+{
+  "experiment": 10,
+  "description": "Crie uma dungeon com uma sala inicial, cinco salas de inimigos, três salas de tesouro, uma sala com uma chave, uma sala trancada e uma sala de chefe. A dungeon deve possuir dois caminhos diferentes entre a sala inicial e o chefe.",
+  "timestamp": "2026-10-02T00:52:30.475330",
+  "success": true,
+  "total_attempts": 1,
+  "total_time_seconds": 88.66,
+  "attempts": [
+    {
+      "attempt": 1,
+      "valid": true,
+      "dungeon": {
+        "rooms": [
+          {
+            "id": 1,
+            "type": "start"
+          },
+          {
+            "id": 2,
+            "type": "enemy"
+          },
+          {
+            "id": 3,
+            "type": "enemy"
+          },
+          {
+            "id": 4,
+            "type": "enemy"
+          },
+          {
+            "id": 5,
+            "type": "enemy"
+          },
+          {
+            "id": 6,
+            "type": "enemy"
+          },
+          {
+            "id": 7,
+            "type": "treasure"
+          },
+          {
+            "id": 8,
+            "type": "treasure"
+          },
+          {
+            "id": 9,
+            "type": "treasure"
+          },
+          {
+            "id": 10,
+            "type": "key"
+          },
+          {
+            "id": 11,
+            "type": "locked"
+          },
+          {
+            "id": 12,
+            "type": "boss"
+          }
+        ],
+        "connections": [
+          {
+            "start": 1,
+            "end": 2
+          },
+          {
+            "start": 1,
+            "end": 7
+          },
+          {
+            "start": 2,
+            "end": 3
+          },
+          {
+            "start": 3,
+            "end": 4
+          },
+          {
+            "start": 4,
+            "end": 5
+          },
+          {
+            "start": 5,
+            "end": 6
+          },
+          {
+            "start": 7,
+            "end": 8
+          },
+          {
+            "start": 8,
+            "end": 9
+          },
+          {
+            "start": 9,
+            "end": 10
+          },
+          {
+            "start": 10,
+            "end": 11
+          },
+          {
+            "start": 6,
+            "end": 12
+          },
+          {
+            "start": 11,
+            "end": 12
+          }
+        ]
+      },
+      "errors": [],
+      "time_seconds": 88.66
+    }
+  ]
+}
